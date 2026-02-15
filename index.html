@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Mobile App Mode Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    
+    <title>⚽ Pro Football Championship</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; outline: none; }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial Black', 'Helvetica', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a5c35 0%, #0d3d20 100%);
+            touch-action: none;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+
+        .scoreboard {
+            position: fixed;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.95));
+            border-radius: 0px; /* To'rtburchak */
+            overflow: hidden; 
+            border: 2px solid #FFD700;
+            pointer-events: auto; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
+            z-index: 200;
+        }
+        
+        .team-box {
+            padding: 3px 8px;
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .team-name { 
+            color: #FFD700; 
+            font-size: 9px; 
+            font-weight: 900; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            letter-spacing: 0.3px;
+            min-width: 35px;
+            text-align: center;
+        }
+        
+        .score-box { 
+            padding: 3px 12px; 
+            font-weight: 900; 
+            font-size: 15px; 
+            min-width: 35px; 
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            letter-spacing: 0.5px;
+        }
+        
+        .bg-a { 
+            background: linear-gradient(135deg, #c41e3a 0%, #8b1429 100%);
+            color: #fff; 
+        }
+        
+        .bg-b { 
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+            color: #000; 
+        }
+
+        /* YANGI TO'RTBURCHAK TUGMALAR STILI */
+        .top-btn {
+            position: fixed;
+            top: 8px;
+            background: #222;
+            border: 2px solid #555;
+            border-radius: 2px; /* Deyarli o'tkir burchak */
+            padding: 6px 10px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.8);
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            z-index: 200;
+            color: #fff;
+            font-size: 11px;
+            min-width: 36px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .top-btn:active { transform: translateY(1px); }
+        .top-btn:hover { border-color: #FFD700; background: #333; }
+
+        .settings-btn { left: 8px; }
+        .pause-btn { right: 8px; background: #d35400; border-color: #e67e22; }
+        .edit-btn { right: 75px; background: #2980b9; border-color: #3498db; }
+        .sound-btn { right: 135px; }
+        .fullscreen-btn { right: 180px; }
+
+        /* PAUSE MENU OVERLAY */
+        .pause-menu {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 400;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .pause-menu.active { opacity: 1; pointer-events: auto; }
+
+        .pause-title {
+            color: #FFD700;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #FFD700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            border-bottom: 3px solid #FFD700;
+            padding-bottom: 10px;
+        }
+
+        .menu-btn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 15px 0;
+            margin: 10px;
+            border-radius: 2px; /* To'rtburchak */
+            font-size: 14px;
+            font-weight: 900;
+            width: 220px;
+            cursor: pointer;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.8);
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu-btn:active { transform: translateY(4px); box-shadow: 0 0 0 rgba(0,0,0,0); }
+        .menu-btn:hover { border-color: #FFD700; }
+        
+        .btn-resume { background: #27ae60; border-color: #2ecc71; }
+        .btn-restart { background: #f39c12; border-color: #f1c40f; color: #000; }
+        .btn-exit { background: #c0392b; border-color: #e74c3c; }
+
+        .settings-panel {
+            position: fixed;
+            top: 45px;
+            left: 8px;
+            background: #111;
+            border-radius: 4px;
+            padding: 10px;
+            border: 2px solid #444;
+            pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,1);
+            width: 200px;
+            transform: translateX(-250px);
+            transition: transform 0.3s ease;
+            z-index: 200;
+        }
+
+        .settings-panel.open { transform: translateX(0); }
+
+        .settings-panel h3 {
+            margin: 0 0 10px 0;
+            color: #FFD700;
+            font-size: 12px;
+            text-align: center;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        .control-row { margin: 12px 0; }
+
+        .control-label {
+            color: #ccc;
+            font-size: 9px;
+            margin-bottom: 4px;
+            display: block;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .control-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 0;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 0; /* Kvadrat */
+            background: #FFD700;
+            cursor: pointer;
+            border: 1px solid #000;
+        }
+
+        .control-value {
+            color: #FFD700;
+            font-size: 9px;
+            text-align: right;
+            margin-top: 2px;
+            font-weight: 700;
+        }
+
+        #goal-overlay {
+            position: absolute; 
+            top: 0; 
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            pointer-events: none; 
+            z-index: 300;
+            background: rgba(0,0,0,0.4);
+        }
+        
+        #goal-overlay.show { display: block; }
+
+        .goal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            text-align: center;
+        }
+
+        #goal-overlay.show .goal-content {
+            animation: goalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes goalPop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        #goal-title { 
+            font-size: 80px; 
+            margin: 0; 
+            color: #FFD700; 
+            -webkit-text-stroke: 3px #000;
+            font-weight: 900;
+            text-shadow: 4px 4px 0px #000;
+        }
+
+        #goal-cheer { 
+            font-size: 32px; 
+            margin: 20px 0; 
+            color: #2ecc71; 
+            font-weight: 900;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .goal-fireworks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .setup-panel {
+            position: absolute; 
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #111;
+            border-radius: 4px; 
+            border: 2px solid #333;
+            text-align: center; 
+            pointer-events: auto;
+            width: 420px; 
+            max-height: 90vh; 
+            overflow-y: auto;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.95);
+            scrollbar-width: thin;
+            scrollbar-color: #FFD700 #1a1a1a;
+        }
+        
+        .setup-panel::-webkit-scrollbar { width: 8px; }
+        .setup-panel::-webkit-scrollbar-track { background: #1a1a1a; }
+        .setup-panel::-webkit-scrollbar-thumb { background: #FFD700; }
+        
+        .header { 
+            background: #FFD700;
+            padding: 18px; 
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .header h2 { 
+            color: #000; 
+            margin: 0; 
+            font-size: 18px; 
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .block { 
+            background: #222;
+            margin: 12px 16px; 
+            border-radius: 4px; 
+            border: 1px solid #444;
+            overflow: hidden;
+        }
+        
+        .block-title { 
+            background: #333;
+            color: #FFD700; 
+            font-size: 11px; 
+            padding: 10px 16px; 
+            text-align: left; 
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .block-content { 
+            padding: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 14px; 
+        }
+
+        .row { display: flex; justify-content: space-between; align-items: center; }
+        
+        .label { color: #ddd; font-size: 13px; font-weight: 700; }
+        
+        .mode-switch { 
+            display: flex; 
+            background: #111;
+            padding: 4px; 
+            border-radius: 2px; 
+            border: 1px solid #444;
+        }
+        
+        .mode-opt { 
+            padding: 7px 14px; 
+            border-radius: 2px; 
+            color: #888; 
+            font-size: 10px; 
+            cursor: pointer; 
+            font-weight: 900;
+            transition: all 0.3s;
+            letter-spacing: 0.5px;
+        }
+        
+        .mode-opt.active { background: #FFD700; color: #000; }
+
+        select { 
+            background: #111;
+            color: #fff; 
+            border: 1px solid #444;
+            padding: 8px 10px; 
+            border-radius: 2px; 
+            font-size: 11px; 
+            width: 180px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        select option { background: #1a1a1a; color: #fff; }
+        
+        input[type=range] { 
+            -webkit-appearance: none; 
+            width: 120px; 
+            height: 6px; 
+            background: #333;
+            border-radius: 3px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; 
+            width: 20px; 
+            height: 20px; 
+            border-radius: 0; 
+            background: #FFD700;
+            cursor: pointer; 
+            border: 2px solid #000;
+        }
+
+        .btn-start { 
+            background: #27ae60;
+            color: #fff; 
+            border: none; 
+            padding: 16px; 
+            width: calc(100% - 32px); 
+            font-weight: 900; 
+            font-size: 18px; 
+            border-radius: 2px; 
+            cursor: pointer; 
+            margin: 0 16px 12px 16px;
+            box-shadow: 0 4px 0 #2ecc71;
+            transition: all 0.1s;
+            letter-spacing: 2px;
+        }
+        
+        .btn-start:active { transform: translateY(4px); box-shadow: none; }
+        
+        .btn-newproject { 
+            background: #2980b9;
+            color: #fff; 
+            border: none; 
+            padding: 14px; 
+            width: calc(100% - 32px); 
+            font-weight: 900; 
+            font-size: 16px; 
+            border-radius: 2px; 
+            cursor: pointer; 
+            margin: 0 16px 16px 16px;
+            box-shadow: 0 4px 0 #3498db;
+            transition: all 0.1s;
+            letter-spacing: 1.5px;
+        }
+        
+        .btn-newproject:active { transform: translateY(4px); box-shadow: none; }
+
+        .image-upload-box {
+            background: #111;
+            border: 2px dashed #444;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 0;
+        }
+        
+        .image-upload-box:hover { border-color: #FFD700; }
+        .image-upload-box.has-image { border-color: #2ecc71; border-style: solid; }
+        
+        .upload-label { color: #999; font-size: 11px; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .preview-img { max-width: 100%; max-height: 80px; border-radius: 4px; margin-top: 10px; }
+        input[type=file] { display: none; }
+        
+        input[type=text] { 
+            background: #111;
+            color: #fff; 
+            border: 1px solid #444;
+            padding: 10px 14px; 
+            border-radius: 2px; 
+            font-size: 13px; 
+            width: 100%;
+            font-weight: 600;
+        }
+        
+        input[type=text]::placeholder { color: #666; }
+        input[type=text]:focus { outline: none; border-color: #FFD700; }
+
+        .player-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+
+        .player-item {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 2px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-item-left { display: flex; align-items: center; gap: 8px; }
+
+        .player-num {
+            background: #FFD700;
+            color: #000;
+            width: 24px;
+            height: 24px;
+            border-radius: 0; /* Kvadrat */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .player-role { color: #ccc; font-size: 11px; font-weight: 700; }
+
+        .btn-toggle {
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-toggle.active { background: #27ae60; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <audio id="bgMusic" loop src="19FA19UTFDEY (1).mp3"></audio>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="goal-overlay">
+                <canvas class="goal-fireworks" id="fireworksCanvas"></canvas>
+                <div class="goal-content">
+                    <h1 id="goal-title">GOAL!</h1>
+                    <p id="goal-cheer">Amazing!</p>
+                </div>
+            </div>
+
+            <!-- PAUSE MENU -->
+            <div id="pauseMenu" class="pause-menu">
+                <h2 class="pause-title">PAUSED</h2>
+                <button class="menu-btn btn-resume" onclick="togglePause()">Davom ettirish ▶</button>
+                <button class="menu-btn btn-restart" onclick="restartMatch()">Qayta boshlash 🔄</button>
+                <button class="menu-btn btn-exit" onclick="exitToMenu()">Chiqish 🚪</button>
+            </div>
+
+            <div id="setupScreen" class="setup-panel">
+                <div class="header"><h2>⚽ PRO FOOTBALL WORLD ⚽</h2></div>
+                
+                <div class="country-count">🌍 200+ COUNTRIES AVAILABLE</div>
+                
+                <div class="block">
+                    <div class="block-title">🎮 MODE & MOVEMENT</div>
+                    <div class="block-content">
+                        <div class="row">
+                            <span class="label">Visual:</span>
+                            <div class="mode-switch">
+                                <div class="mode-opt active" id="v_img" onclick="updateUI('visual','img')">IMAGES</div>
+                                <div class="mode-opt" id="v_flag" onclick="updateUI('visual','flag')">FLAGS</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <span class="label">Movement:</span>
+                            <div class="mode-switch">
+                                <div class="mode-opt active" id="m_foos" onclick="updateUI('mode','foosball')">FOOSBALL</div>
+                                <div class="mode-opt" id="m_free" onclick="updateUI('mode','free')">FREE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">🌍 SELECT COUNTRIES</div>
+                    <div class="block-content">
+                        <div class="row">
+                            <span class="label">Team A:</span>
+                            <select id="sel_a" onchange="updateFlag('barca', this.value)"></select>
+                        </div>
+                        <div class="row">
+                            <span class="label">Team B:</span>
+                            <select id="sel_b" onchange="updateFlag('real', this.value)"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">✏️ CUSTOMIZE TEAM NAMES</div>
+                    <div class="block-content">
+                        <input type="text" id="name_a" placeholder="Team A Name" value="BARCA" oninput="updateTeamName('a', this.value)" />
+                        <input type="text" id="name_b" placeholder="Team B Name" value="REAL" oninput="updateTeamName('b', this.value)" />
+                    </div>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">⚙️ SETTINGS</div>
+                    <div class="block-content">
+                        <div class="row">
+                            <span class="label">⚽ Ball Speed:</span>
+                            <input type="range" min="0.5" max="2.0" step="0.1" value="0.8" oninput="gameSettings.ballSpeed = parseFloat(this.value)">
+                        </div>
+                        <div class="row">
+                            <span class="label">🔴 Team A Size:</span>
+                            <input type="range" min="0.5" max="1.5" step="0.1" value="0.7" oninput="updateUI('scaleA', this.value)">
+                        </div>
+                        <div class="row">
+                            <span class="label">⚪ Team B Size:</span>
+                            <input type="range" min="0.5" max="1.5" step="0.1" value="0.7" oninput="updateUI('scaleB', this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-start" onclick="startGame()">🎮 START GAME</button>
+                <button class="btn-newproject" onclick="showNewProject()">➕ CREATE NEW TEAM</button>
+                <button class="btn-newproject" onclick="showEditMode()">✏️ EDIT POSITIONS</button>
+            </div>
+
+            <!-- NEW PROJECT AND EDIT SCREENS (Hidden by default) -->
+            <div id="newProjectScreen" class="setup-panel hidden">
+                <div class="header"><h2>➕ CREATE NEW TEAM</h2></div>
+                
+                <div class="block">
+                    <div class="block-title">🔴 TEAM A DETAILS</div>
+                    <div class="block-content">
+                        <input type="text" id="teamA_name" placeholder="Team Name" />
+                        
+                        <div class="upload-label">Team Logo:</div>
+                        <div class="image-upload-box" id="uploadBoxA_flag" onclick="document.getElementById('fileA_flag').click()">
+                            <span id="textA_flag">📁 Upload Logo</span>
+                            <img id="previewA_flag" class="preview-img hidden" />
+                        </div>
+                        <input type="file" id="fileA_flag" accept="image/*" onchange="handleImageUpload('A', 'flag')" />
+                        
+                        <div class="upload-label">Player Images:</div>
+                        <div class="image-upload-box" id="uploadBoxA_players" onclick="document.getElementById('fileA_players').click()">
+                            <span id="textA_players">📁 Upload Images</span>
+                            <div id="previewA_players"></div>
+                        </div>
+                        <input type="file" id="fileA_players" accept="image/*" multiple onchange="handleImageUpload('A', 'players')" />
+                    </div>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">⚪ TEAM B DETAILS</div>
+                    <div class="block-content">
+                        <input type="text" id="teamB_name" placeholder="Team Name" />
+                        
+                        <div class="upload-label">Team Logo:</div>
+                        <div class="image-upload-box" id="uploadBoxB_flag" onclick="document.getElementById('fileB_flag').click()">
+                            <span id="textB_flag">📁 Upload Logo</span>
+                            <img id="previewB_flag" class="preview-img hidden" />
+                        </div>
+                        <input type="file" id="fileB_flag" accept="image/*" onchange="handleImageUpload('B', 'flag')" />
+                        
+                        <div class="upload-label">Player Images:</div>
+                        <div class="image-upload-box" id="uploadBoxB_players" onclick="document.getElementById('fileB_players').click()">
+                            <span id="textB_players">📁 Upload Images</span>
+                            <div id="previewB_players"></div>
+                        </div>
+                        <input type="file" id="fileB_players" accept="image/*" multiple onchange="handleImageUpload('B', 'players')" />
+                    </div>
+                </div>
+
+                <button class="btn-start" onclick="saveNewProject()">💾 SAVE</button>
+                <button class="btn-newproject" onclick="backToSetup()">◀️ BACK</button>
+            </div>
+
+            <div id="editModeScreen" class="setup-panel hidden">
+                <div class="header"><h2>✏️ EDIT POSITIONS</h2></div>
+                
+                <div class="block">
+                    <div class="block-title">🔴 TEAM A PLAYERS</div>
+                    <div class="block-content">
+                        <div class="player-list" id="teamA_players"></div>
+                    </div>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">⚪ TEAM B PLAYERS</div>
+                    <div class="block-content">
+                        <div class="player-list" id="teamB_players"></div>
+                    </div>
+                </div>
+
+                <button class="btn-start" onclick="applyEditMode()">✅ APPLY</button>
+                <button class="btn-newproject" onclick="backToSetup()">◀️ BACK</button>
+            </div>
+
+            <div id="gameUI" class="hidden">
+                <div class="top-btn settings-btn" onclick="toggleSettings()">⚙️ SETTINGS</div>
+                <div class="top-btn pause-btn" onclick="togglePause()">II PAUSE</div>
+                <div class="top-btn edit-btn" onclick="pauseAndEdit()">✏️ EDIT</div>
+                <div class="top-btn sound-btn" onclick="toggleSound()"><span id="soundIcon">🔊</span></div>
+                <div class="top-btn fullscreen-btn" onclick="toggleFullscreen()"><span>⛶</span></div>
+
+                <div class="settings-panel" id="settingsPanel">
+                    <h3>⚙️ LIVE SETTINGS</h3>
+                    <div class="control-row">
+                        <label class="control-label">🔊 Stadium Volume</label>
+                        <input type="range" class="control-slider" min="0" max="1" step="0.1" value="0.8" 
+                               oninput="updateMusicVolume(this.value)">
+                        <div class="control-value" id="val_vol">80%</div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">⚽ Ball Speed</label>
+                        <input type="range" class="control-slider" min="0.3" max="2.5" step="0.1" value="0.8" 
+                               oninput="gameSettings.ballSpeed = parseFloat(this.value); updateControlValue('ball', this.value)">
+                        <div class="control-value" id="val_ball">0.8x</div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">🥅 Darvoza Kengligi</label>
+                        <input type="range" class="control-slider" min="0.1" max="0.3" step="0.01" value="0.16" 
+                               oninput="gameSettings.goalSize = parseFloat(this.value); updateControlValue('goal', (this.value*100).toFixed(0))">
+                        <div class="control-value" id="val_goal">16%</div>
+                    </div>
+                    <button class="menu-btn btn-exit" style="width:100%; margin: 10px 0; padding: 8px;" onclick="exitToMenu()">CHIQISH</button>
+                </div>
+
+                <div class="scoreboard">
+                    <div class="team-box">
+                        <div class="team-name" id="name_display_a">BARCA</div>
+                    </div>
+                    <div class="score-box bg-a" id="s_a_val">0</div>
+                    <div class="score-box bg-b" id="s_b_val">0</div>
+                    <div class="team-box">
+                        <div class="team-name" id="name_display_b">REAL</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const fwCanvas = document.getElementById('fireworksCanvas');
+        const fwCtx = fwCanvas.getContext('2d');
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const bgMusic = document.getElementById('bgMusic');
+
+        const CHEERS = ["🔥 Amazing!", "⚡ Great!", "🌟 Super!", "💥 Awesome!", "🎯 Perfect!", "⚽ Goal!", "🏆 Top!", "💪 Strong!"];
+        const FIELD_PAD = 20;
+        const BALL_BASE_SPEED = 6.5;
+        const PLAYER_BASE_SPEED = 2.5;
+
+        let customTeams = { A: { name: '', flag: null, players: [] }, B: { name: '', flag: null, players: [] } };
+        let fireworks = [];
+        let editModeState = {
+            teamA: [true, true, true, true, true, true, true, true, true],
+            teamB: [true, true, true, true, true, true, true, true, true]
+        };
+        let isPaused = false;
+
+        const ROLE_NAMES = ["GK", "DEF", "DEF", "MID", "MID", "MID", "MID", "FWD", "FWD"];
+
+        // HUGE LIST OF COUNTRIES (200+)
+        const ALL_COUNTRIES = {
+            "uz": "Uzbekistan", "es": "Spain", "br": "Brazil", "ar": "Argentina", "de": "Germany", "fr": "France",
+            "pt": "Portugal", "gb-eng": "England", "it": "Italy", "nl": "Netherlands", "be": "Belgium", "hr": "Croatia",
+            "us": "USA", "mx": "Mexico", "co": "Colombia", "uy": "Uruguay", "sn": "Senegal", "jp": "Japan",
+            "kr": "South Korea", "ir": "Iran", "sa": "Saudi Arabia", "au": "Australia", "ma": "Morocco", "ng": "Nigeria",
+            "eg": "Egypt", "dz": "Algeria", "tn": "Tunisia", "cm": "Cameroon", "gh": "Ghana", "ci": "Ivory Coast",
+            "za": "South Africa", "ca": "Canada", "cr": "Costa Rica", "pa": "Panama", "tr": "Turkey", "ru": "Russia",
+            "ua": "Ukraine", "pl": "Poland", "se": "Sweden", "dk": "Denmark", "no": "Norway", "rs": "Serbia",
+            "ch": "Switzerland", "at": "Austria", "hu": "Hungary", "cz": "Czech Rep.", "gr": "Greece", "ro": "Romania",
+            "cl": "Chile", "pe": "Peru", "ec": "Ecuador", "py": "Paraguay", "ve": "Venezuela", "bo": "Bolivia",
+            "cn": "China", "in": "India", "th": "Thailand", "vn": "Vietnam", "id": "Indonesia", "my": "Malaysia",
+            "qa": "Qatar", "ae": "UAE", "iq": "Iraq", "jo": "Jordan", "om": "Oman", "kw": "Kuwait", "bh": "Bahrain",
+            "kz": "Kazakhstan", "kg": "Kyrgyzstan", "tj": "Tajikistan", "tm": "Turkmenistan", "af": "Afghanistan", "pk": "Pakistan",
+            "bd": "Bangladesh", "lk": "Sri Lanka", "np": "Nepal", "ge": "Georgia", "az": "Azerbaijan", "am": "Armenia",
+            "ie": "Ireland", "gb-sct": "Scotland", "gb-wls": "Wales", "is": "Iceland", "fi": "Finland", "ee": "Estonia",
+            "lv": "Latvia", "lt": "Lithuania", "by": "Belarus", "md": "Moldova", "bg": "Bulgaria", "mk": "North Macedonia",
+            "al": "Albania", "ba": "Bosnia", "si": "Slovenia", "sk": "Slovakia", "cy": "Cyprus", "il": "Israel",
+            "nz": "New Zealand", "fj": "Fiji", "jm": "Jamaica", "ht": "Haiti", "hn": "Honduras", "sv": "El Salvador",
+            "gt": "Guatemala", "cu": "Cuba", "do": "Dominican Rep.", "ke": "Kenya", "et": "Ethiopia", "tz": "Tanzania",
+            "ug": "Uganda", "rw": "Rwanda", "ao": "Angola", "mz": "Mozambique", "zm": "Zambia", "zw": "Zimbabwe",
+            "cd": "DR Congo", "cg": "Congo", "ga": "Gabon", "gn": "Guinea", "ml": "Mali", "bf": "Burkina Faso",
+            "ad": "Andorra", "ag": "Antigua & Barbuda", "bs": "Bahamas", "bb": "Barbados", "bz": "Belize", "bj": "Benin",
+            "bt": "Bhutan", "bw": "Botswana", "bn": "Brunei", "bi": "Burundi", "cv": "Cabo Verde", "kh": "Cambodia",
+            "cf": "Central African Rep.", "td": "Chad", "km": "Comoros", "dj": "Djibouti", "dm": "Dominica", "gq": "Eq. Guinea",
+            "er": "Eritrea", "sz": "Eswatini", "fm": "Micronesia", "gd": "Grenada", "gw": "Guinea-Bissau", "gy": "Guyana",
+            "ki": "Kiribati", "la": "Laos", "ls": "Lesotho", "lr": "Liberia", "li": "Liechtenstein", "lu": "Luxembourg",
+            "mg": "Madagascar", "mw": "Malawi", "mv": "Maldives", "mt": "Malta", "mh": "Marshall Is.", "mr": "Mauritania",
+            "mu": "Mauritius", "mc": "Monaco", "mn": "Mongolia", "me": "Montenegro", "na": "Namibia", "nr": "Nauru",
+            "ni": "Nicaragua", "ne": "Niger", "kp": "North Korea", "pw": "Palau", "pg": "Papua New Guinea", "ph": "Philippines",
+            "kn": "St. Kitts & Nevis", "lc": "St. Lucia", "vc": "St. Vincent", "ws": "Samoa", "sm": "San Marino",
+            "st": "Sao Tome", "sc": "Seychelles", "sl": "Sierra Leone", "sg": "Singapore", "sb": "Solomon Is.", "so": "Somalia",
+            "ss": "South Sudan", "sr": "Suriname", "sy": "Syria", "tl": "Timor-Leste", "tg": "Togo", "to": "Tonga",
+            "tt": "Trinidad & Tobago", "tv": "Tuvalu", "vu": "Vanuatu", "va": "Vatican City", "ye": "Yemen"
+        };
+
+        function showEditMode() {
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('editModeScreen').classList.remove('hidden');
+            populateEditMode();
+        }
+
+        function populateEditMode() {
+            const teamAList = document.getElementById('teamA_players');
+            const teamBList = document.getElementById('teamB_players');
+            teamAList.innerHTML = ''; teamBList.innerHTML = '';
+            
+            for(let i = 0; i < 9; i++) {
+                const itemA = document.createElement('div');
+                itemA.className = 'player-item';
+                itemA.innerHTML = `
+                    <div class="player-item-left">
+                        <div class="player-num">${i+1}</div>
+                        <div class="player-role">${ROLE_NAMES[i]}</div>
+                    </div>
+                    <button class="btn-toggle ${editModeState.teamA[i] ? 'active' : ''}" onclick="togglePlayer('A', ${i})">
+                        ${editModeState.teamA[i] ? 'ACTIVE' : 'OFF'}
+                    </button>
+                `;
+                teamAList.appendChild(itemA);
+                
+                const itemB = document.createElement('div');
+                itemB.className = 'player-item';
+                itemB.innerHTML = `
+                    <div class="player-item-left">
+                        <div class="player-num">${i+1}</div>
+                        <div class="player-role">${ROLE_NAMES[i]}</div>
+                    </div>
+                    <button class="btn-toggle ${editModeState.teamB[i] ? 'active' : ''}" onclick="togglePlayer('B', ${i})">
+                        ${editModeState.teamB[i] ? 'ACTIVE' : 'OFF'}
+                    </button>
+                `;
+                teamBList.appendChild(itemB);
+            }
+        }
+
+        function togglePlayer(team, index) {
+            if(team === 'A') editModeState.teamA[index] = !editModeState.teamA[index];
+            else editModeState.teamB[index] = !editModeState.teamB[index];
+            populateEditMode();
+        }
+
+        function applyEditMode() {
+            if(players.length > 0) {
+                players.forEach(p => {
+                    if(p.team === 'barca') p.hidden = !editModeState.teamA[p.id];
+                    else p.hidden = !editModeState.teamB[p.id];
+                });
+            }
+            alert('✅ Changes saved!');
+            backToSetup();
+        }
+
+        function pauseAndEdit() { isPlaying = false; showEditMode(); }
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('open'); }
+        function updateControlValue(type, value) { 
+            let displayVal = parseFloat(value).toFixed(1) + 'x';
+            if (type === 'goal') displayVal = value + '%';
+            document.getElementById(`val_${type}`).textContent = displayVal; 
+        }
+        
+        function updateMusicVolume(val) {
+            bgMusic.volume = val;
+            document.getElementById('val_vol').innerText = Math.round(val*100) + '%';
+        }
+
+        function toggleSound() {
+            if (bgMusic.paused) {
+                bgMusic.play();
+                document.getElementById('soundIcon').innerText = '🔊';
+            } else {
+                bgMusic.pause();
+                document.getElementById('soundIcon').innerText = '🔇';
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // TRIGGER FULLSCREEN ON FIRST INTERACTION
+        function initFullscreenListener() {
+            const fsHandler = () => {
+                toggleFullscreen();
+                document.removeEventListener('click', fsHandler);
+                document.removeEventListener('touchstart', fsHandler);
+            };
+            document.addEventListener('click', fsHandler);
+            document.addEventListener('touchstart', fsHandler);
+        }
+        initFullscreenListener();
+
+        function showNewProject() { document.getElementById('setupScreen').classList.add('hidden'); document.getElementById('newProjectScreen').classList.remove('hidden'); }
+        function backToSetup() {
+            document.getElementById('newProjectScreen').classList.add('hidden');
+            document.getElementById('editModeScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        }
+
+        function handleImageUpload(team, type) {
+            const fileInput = document.getElementById(`file${team}_${type}`);
+            const files = fileInput.files;
+            
+            if (type === 'flag' && files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customTeams[team].flag = e.target.result;
+                    document.getElementById(`preview${team}_flag`).src = e.target.result;
+                    document.getElementById(`preview${team}_flag`).classList.remove('hidden');
+                    document.getElementById(`text${team}_flag`).textContent = '✅ Uploaded';
+                    document.getElementById(`uploadBox${team}_flag`).classList.add('has-image');
+                };
+                reader.readAsDataURL(files[0]);
+            }
+            
+            if (type === 'players' && files.length > 0) {
+                customTeams[team].players = [];
+                const previewContainer = document.getElementById(`preview${team}_players`);
+                previewContainer.innerHTML = '';
+                
+                const maxFiles = Math.min(files.length, 9);
+                for (let i = 0; i < maxFiles; i++) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        customTeams[team].players.push(e.target.result);
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.cssText = 'max-width: 50px; max-height: 50px; margin: 3px; border-radius: 8px; border: 2px solid #2ecc71;';
+                        previewContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(files[i]);
+                }
+                
+                document.getElementById(`text${team}_players`).textContent = `✅ ${maxFiles} files`;
+                document.getElementById(`uploadBox${team}_players`).classList.add('has-image');
+            }
+        }
+
+        function saveNewProject() {
+            const nameA = document.getElementById('teamA_name').value || 'Team A';
+            const nameB = document.getElementById('teamB_name').value || 'Team B';
+            teamInfo.barca.name = nameA.toUpperCase();
+            teamInfo.real.name = nameB.toUpperCase();
+            
+            if (customTeams.A.flag) teamInfo.barca.img.src = customTeams.A.flag;
+            if (customTeams.B.flag) teamInfo.real.img.src = customTeams.B.flag;
+            if (customTeams.A.players.length > 0) customTeams.A.players.forEach((src, i) => { SPRITES.barca[i].src = src; });
+            if (customTeams.B.players.length > 0) customTeams.B.players.forEach((src, i) => { SPRITES.real[i].src = src; });
+            
+            document.getElementById('name_a').value = nameA;
+            document.getElementById('name_b').value = nameB;
+            alert('✅ Saved!');
+            backToSetup();
+        }
+
+        function playSound(happy) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const playNote = (f, t, d) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.frequency.value = f;
+                g.gain.setValueAtTime(0.2, t);
+                g.gain.exponentialRampToValueAtTime(0.01, t+d);
+                o.connect(g); g.connect(audioCtx.destination);
+                o.start(t); o.stop(t+d);
+            };
+            if(happy) [523, 659, 784, 1047].forEach((f,i)=>playNote(f, now+i*0.08, 0.3));
+        }
+
+        class Firework {
+            constructor(x, y) {
+                this.particles = [];
+                for(let i = 0; i < 20; i++) {
+                    const angle = (Math.PI * 2 * i) / 20;
+                    const speed = Math.random() * 3 + 2;
+                    this.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color: `hsl(${Math.random()*60+30}, 100%, 60%)` });
+                }
+            }
+            update() {
+                this.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.02; });
+                this.particles = this.particles.filter(p => p.life > 0);
+            }
+            draw() {
+                this.particles.forEach(p => { fwCtx.globalAlpha = p.life; fwCtx.fillStyle = p.color; fwCtx.fillRect(p.x-2, p.y-2, 4, 4); });
+                fwCtx.globalAlpha = 1;
+            }
+        }
+
+        const sA=document.getElementById('sel_a'), sB=document.getElementById('sel_b');
+        for (const [code, name] of Object.entries(ALL_COUNTRIES)) {
+             sA.innerHTML+=`<option value="${code}">${name}</option>`;
+             sB.innerHTML+=`<option value="${code}">${name}</option>`;
+        }
+        sA.value="uz"; sB.value="es";
+
+        let gameSettings = { 
+            visual: 'img', mode: 'foosball', ballSpeed: 0.8, 
+            scaleA: 0.7, scaleB: 0.7, 
+            teamASpeed: 1.2, teamBSpeed: 1.2,
+            goalSize: 0.16 
+        };
+        
+        let teamInfo = { barca:{name:"BARCA",img:new Image()}, real:{name:"REAL",img:new Image()} };
+        let scores = { a:0, b:0 };
+
+        function updateUI(k, v) {
+            if(k==='visual'){ gameSettings.visual=v; document.getElementById('v_img').className=v==='img'?'mode-opt active':'mode-opt'; document.getElementById('v_flag').className=v==='flag'?'mode-opt active':'mode-opt'; }
+            if(k==='mode'){ gameSettings.mode=v; document.getElementById('m_foos').className=v==='foosball'?'mode-opt active':'mode-opt'; document.getElementById('m_free').className=v==='free'?'mode-opt active':'mode-opt'; }
+            if(k==='scaleA') gameSettings.scaleA = parseFloat(v);
+            if(k==='scaleB') gameSettings.scaleB = parseFloat(v);
+        }
+
+        function updateFlag(t, id) { const team = t==='barca'?'barca':'real'; teamInfo[team].img.src=`https://flagcdn.com/w320/${id}.png`; }
+        function updateTeamName(team, value) { if(team === 'a') teamInfo.barca.name = value.toUpperCase() || 'BARCA'; else teamInfo.real.name = value.toUpperCase() || 'REAL'; }
+        updateFlag('barca','uz'); updateFlag('real','es');
+
+        let width, height, dpr, ball, players=[], isPlaying=false, dragTarget=null;
+
+        function setupCanvas(){
+            dpr=window.devicePixelRatio||1;
+            const r=canvas.getBoundingClientRect();
+            canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+            ctx.scale(dpr,dpr); width=r.width; height=r.height;
+            fwCanvas.width = r.width; fwCanvas.height = r.height;
+        }
+        window.addEventListener('resize', setupCanvas); setupCanvas();
+
+        const B_URLS = ['https://i.ibb.co/4n09YnhD/1000092201.jpg','https://i.ibb.co/C5By2pKv/1000092198.png','https://i.ibb.co/B500zN15/1000092199.png','https://i.ibb.co/zhjYHk3y/1000092197.png','https://i.ibb.co/3mHpsVzG/1000092285-1.png','https://i.ibb.co/3yD52vpf/Screenshot-20260202-141807-Gallery.jpg','https://i.ibb.co/S4MtmBmg/mqj8lbrkc99cgbhboxhz.jpg','https://i.ibb.co/Nc4DLb4/1000092193.png','https://i.ibb.co/ccGBK42J/1000092194.png'];
+        const R_URLS = ['https://i.ibb.co/ynzLBxjv/Screenshot-20260208-154312-Gallery.jpg','https://i.ibb.co/1tsJC827/Screenshot-20260208-154338-Gallery.jpg','https://i.ibb.co/gMmWFw3W/Screenshot-20260208-154358-Gallery.jpg','https://i.ibb.co/yc2TWB8P/Screenshot-20260208-154450-Gallery.jpg','https://i.ibb.co/bjbQyLnn/Screenshot-20260208-154429-Gallery.jpg','https://i.ibb.co/84GBMqJc/Screenshot-20260208-154521-Gallery.jpg','https://i.ibb.co/VcZsD0hL/Screenshot-20260208-154608-Gallery.jpg','https://i.ibb.co/b50hKjpt/Screenshot-20260208-154551-Gallery.jpg','https://i.ibb.co/60ZW1wNF/Screenshot-20260208-154642-Gallery.jpg'];
+        const SPRITES={barca:[], real:[]};
+        B_URLS.forEach((u,i)=>{let img=new Image(); img.src=u; SPRITES.barca[i]=img;});
+        R_URLS.forEach((u,i)=>{let img=new Image(); img.src=u; SPRITES.real[i]=img;});
+
+        class Player {
+            constructor(id, team, x, y) {
+                this.id = id; this.team = team; this.x = x; this.y = y;
+                this.hidden = false; this.rowX = 0;
+                this.rowDir = (team==='barca' ? -1 : 1);
+                this.wobble = Math.random() * Math.PI * 2;
+            }
+            
+            update(ry) {
+                if(this.hidden) return;
+                const speedMult = this.team === 'barca' ? gameSettings.teamASpeed : gameSettings.teamBSpeed;
+                this.wobble += 0.1 * speedMult;
+                
+                if(gameSettings.mode==='foosball'){
+                    const lim = width * 0.12; 
+                    const speed = 2.5 * speedMult;
+                    
+                    this.rowX += this.rowDir * speed;
+                    
+                    if(this.rowX > lim) {
+                        this.rowX = lim - (this.rowX - lim);
+                        this.rowDir = -1;
+                    } else if(this.rowX < -lim) {
+                        this.rowX = -lim + (-lim - this.rowX);
+                        this.rowDir = 1;
+                    }
+                    
+                    this.y = ry + Math.sin(this.wobble) * 5;
+                }
+                this.constrain();
+            }
+            
+            constrain() {
+                const s = this.team === 'barca' ? gameSettings.scaleA : gameSettings.scaleB;
+                const pw = 46*s, ph = 69*s;
+                const hW = pw/2, hH = ph/2;
+
+                if(this.x <= FIELD_PAD + hW) this.x = FIELD_PAD + hW;
+                if(this.x >= width - FIELD_PAD - hW) this.x = width - FIELD_PAD - hW;
+                if(this.y <= FIELD_PAD + hH) this.y = FIELD_PAD + hH;
+                if(this.y >= height - FIELD_PAD - hH) this.y = height - FIELD_PAD - hH;
+            }
+
+            draw() {
+                if(this.hidden) return;
+                
+                // DRAW CIRCULAR FLAGS IF FLAG MODE IS ON
+                if (gameSettings.visual === 'flag') {
+                    const s = this.team === 'barca' ? gameSettings.scaleA : gameSettings.scaleB;
+                    const radius = 23 * s; // Approx half width
+                    
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip();
+                    
+                    let flagImg = teamInfo[this.team].img;
+                    if (flagImg && flagImg.complete) {
+                        // Draw flag centered
+                        const size = radius * 2.8; // Make flag slightly larger to cover circle
+                        ctx.drawImage(flagImg, this.x - size/2, this.y - size/2, size, size);
+                    } else {
+                        ctx.fillStyle = this.team === 'real' ? '#fff' : '#1a2744';
+                        ctx.fill();
+                    }
+                    
+                    // Border
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                } else {
+                    // Original Square Images
+                    const s = this.team === 'barca' ? gameSettings.scaleA : gameSettings.scaleB;
+                    const w=46*s, h=69*s;
+                    ctx.fillStyle=this.team==='real'?'#fff':'#1a2744'; 
+                    ctx.fillRect(this.x-w/2,this.y-h/2,w,h);
+                    let img=SPRITES[this.team][this.id]; 
+                    if(img&&img.complete) ctx.drawImage(img,this.x-w/2,this.y-h/2,w,h);
+                }
+            }
+        }
+
+        function resetPositions() {
+            players.forEach(p => {
+                p.rowX = 0;
+                p.rowDir = (p.team === 'barca' ? -1 : 1);
+            });
+        }
+
+        function triggerGoal(scoredOn) {
+            if(scoredOn==='barca') scores.b++; else scores.a++;
+            
+            let winner = null;
+            if (scores.a >= 10) winner = teamInfo.barca.name;
+            else if (scores.b >= 10) winner = teamInfo.real.name;
+
+            document.getElementById('s_a_val').innerText = scores.a;
+            document.getElementById('s_b_val').innerText = scores.b;
+            
+            if (winner) {
+                document.getElementById('goal-title').innerText = "🏆 WINNER!";
+                document.getElementById('goal-cheer').innerText = winner + " WINS!";
+            } else {
+                document.getElementById('goal-title').innerText = "GOOOOAL!!!";
+                document.getElementById('goal-cheer').innerText = CHEERS[Math.floor(Math.random()*CHEERS.length)];
+            }
+            
+            playSound(true);
+            
+            fireworks.push(new Firework(Math.random() * width, Math.random() * height * 0.5));
+            setTimeout(() => fireworks.push(new Firework(Math.random() * width, Math.random() * height * 0.5)), 300);
+            
+            document.getElementById('goal-overlay').classList.add('show'); 
+            isPlaying = false;
+            
+            setTimeout(() => { 
+                document.getElementById('goal-overlay').classList.remove('show'); 
+                
+                if (winner) {
+                    scores.a = 0;
+                    scores.b = 0;
+                    document.getElementById('s_a_val').innerText = 0;
+                    document.getElementById('s_b_val').innerText = 0;
+                }
+
+                resetBall(); 
+                resetPositions();
+                isPlaying = true; 
+            }, 3000);
+        }
+
+        function updateFireworks() {
+            if(fireworks.length === 0) return;
+            fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+            fireworks.forEach((fw, i) => { fw.update(); fw.draw(); if(fw.particles.length === 0) fireworks.splice(i, 1); });
+        }
+
+        function normalizeBall() {
+            const mag = Math.hypot(ball.vx, ball.vy);
+            const target = BALL_BASE_SPEED * gameSettings.ballSpeed;
+            if(mag > 0) { ball.vx = (ball.vx / mag) * target; ball.vy = (ball.vy / mag) * target; }
+        }
+
+        function handlePhysics() {
+            if(ball.x<ball.r+FIELD_PAD){ 
+                ball.x=ball.r+FIELD_PAD; 
+                ball.vx *= -1; 
+                ball.vy += (Math.random() - 0.5) * 2; 
+                normalizeBall(); 
+            }
+            if(ball.x>width-ball.r-FIELD_PAD){ 
+                ball.x=width-ball.r-FIELD_PAD; 
+                ball.vx *= -1; 
+                ball.vy += (Math.random() - 0.5) * 2; 
+                normalizeBall(); 
+            }
+            
+            const gw = width * gameSettings.goalSize; 
+            
+            if(ball.y < FIELD_PAD) {
+                if(Math.abs(ball.x-width/2) < gw/2) { triggerGoal('barca'); return; }
+                else { 
+                    ball.y=FIELD_PAD+ball.r; 
+                    ball.vy *= -1; 
+                    ball.vx += (Math.random() - 0.5) * 2; 
+                    normalizeBall(); 
+                }
+            }
+            if(ball.y > height-FIELD_PAD) {
+                if(Math.abs(ball.x-width/2) < gw/2) { triggerGoal('real'); return; }
+                else { 
+                    ball.y=height-FIELD_PAD-ball.r; 
+                    ball.vy *= -1; 
+                    ball.vx += (Math.random() - 0.5) * 2; 
+                    normalizeBall(); 
+                }
+            }
+
+            if(Math.abs(ball.vx) < 0.5) {
+                ball.vx += (Math.random() > 0.5 ? 1 : -1) * 2;
+                normalizeBall();
+            }
+
+            players.forEach(p => {
+                if(p.hidden) return;
+                const s = p.team === 'barca' ? gameSettings.scaleA : gameSettings.scaleB;
+                const pw=46*s, ph=69*s;
+                let dx = ball.x - p.x, dy = ball.y - p.y;
+                if(Math.abs(dx) < pw/2 + ball.r && Math.abs(dy) < ph/2 + ball.r){
+                    let kickNoise = (Math.random() - 0.5) * 3; 
+                    if(Math.abs(dy) > Math.abs(dx)){ 
+                        ball.vy *= -1; 
+                        ball.vx += kickNoise; 
+                        ball.y += Math.sign(dy)*12; 
+                    } else { 
+                        ball.vx *= -1; 
+                        ball.vy += kickNoise; 
+                        ball.x += Math.sign(dx)*12; 
+                    }
+                    normalizeBall();
+                }
+            });
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            if(!isPlaying || isPaused) return;
+            const r=canvas.getBoundingClientRect();
+            const p={x:e.clientX-r.left, y:e.clientY-r.top};
+            players.forEach(pl=>{ if(!pl.hidden && Math.hypot(p.x-pl.x, p.y-pl.y)<45) dragTarget=pl; });
+        });
+        canvas.addEventListener('mousemove', e => { if(dragTarget){ const r=canvas.getBoundingClientRect(); dragTarget.x = e.clientX-r.left; dragTarget.y = e.clientY-r.top; dragTarget.constrain(); } });
+        window.addEventListener('mouseup',()=>dragTarget=null);
+
+        function resetBall() {
+            ball = { x: width/2, y: height/2, r: 11, angle: 0 };
+            let ang = Math.random() * Math.PI * 2;
+            let s = BALL_BASE_SPEED * gameSettings.ballSpeed;
+            ball.vx = Math.cos(ang) * s; ball.vy = Math.sin(ang) * s;
+        }
+
+        const STRUCTURE = [
+            { yP: 0.08, ids: [0], team: 'barca' }, { yP: 0.17, ids: [1,2], team: 'barca' }, { yP: 0.26, ids: [7,8], team: 'real' },
+            { yP: 0.35, ids: [3,4], team: 'barca' }, { yP: 0.44, ids: [5,6], team: 'real' }, { yP: 0.56, ids: [5,6], team: 'barca' },
+            { yP: 0.65, ids: [3,4], team: 'real' }, { yP: 0.74, ids: [7,8], team: 'barca' }, { yP: 0.83, ids: [1,2], team: 'real' }, { yP: 0.92, ids: [0], team: 'real' }
+        ];
+
+        function startGame(){
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameUI').classList.remove('hidden');
+            document.getElementById('name_display_a').textContent = teamInfo.barca.name;
+            document.getElementById('name_display_b').textContent = teamInfo.real.name;
+            
+            toggleFullscreen();
+
+            bgMusic.play().catch(e => console.log("Click to play audio"));
+            bgMusic.volume = 0.8;
+            
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
+            players=[];
+            STRUCTURE.forEach(line=>{ 
+                line.ids.forEach((id,i)=>{
+                    const rw=width*(line.ids.length===1?0.15:0.60), sp=line.ids.length>1?rw/(line.ids.length-1):0;
+                    const p = new Player(id,line.team,width/2+(line.ids.length>1?i*sp-rw/2:0),height*line.yP);
+                    p.hidden = !(line.team === 'barca' ? editModeState.teamA[id] : editModeState.teamB[id]);
+                    players.push(p);
+                });
+            });
+            isPlaying=true; resetBall(); loop();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if(isPaused) {
+                document.getElementById('pauseMenu').classList.add('active');
+                isPlaying = false;
+                bgMusic.volume = 0.2; 
+            } else {
+                document.getElementById('pauseMenu').classList.remove('active');
+                isPlaying = true;
+                bgMusic.volume = 0.8;
+            }
+        }
+
+        function restartMatch() {
+            scores.a = 0; scores.b = 0;
+            document.getElementById('s_a_val').innerText = 0;
+            document.getElementById('s_b_val').innerText = 0;
+            resetBall();
+            resetPositions();
+            togglePause();
+        }
+
+        function exitToMenu() {
+            document.getElementById('gameUI').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+            document.getElementById('pauseMenu').classList.remove('active');
+            isPlaying = false;
+            isPaused = false;
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.ellipse(ball.x + 2, ball.y + 4, ball.r, ball.r * 0.8, 0, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(ball.x, ball.y);
+            
+            let speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
+            ball.angle += speed * 0.05;
+            ctx.rotate(ball.angle);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.r, 0, Math.PI * 2);
+            let grad = ctx.createRadialGradient(-3, -3, 2, 0, 0, ball.r);
+            grad.addColorStop(0, "#ffffff");
+            grad.addColorStop(1, "#d1d1d1");
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            ctx.fillStyle = "#1a1a1a";
+            
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * 5, 
+                           Math.sin((18 + i * 72) * Math.PI / 180) * 5);
+            }
+            ctx.fill();
+
+            for(let i=0; i<5; i++) {
+                ctx.beginPath();
+                let angle = (54 + i * 72) * Math.PI / 180;
+                ctx.arc(Math.cos(angle) * 10, Math.sin(angle) * 10, 4, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.r, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(0,0,0,0.15)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.restore();
+            
+            ctx.beginPath();
+            ctx.arc(ball.x - 3, ball.y - 3, ball.r * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            ctx.fill();
+        }
+
+        function loop(){
+            if (isPaused) {
+                requestAnimationFrame(loop);
+                return;
+            }
+
+            ctx.fillStyle = '#0d3d20'; ctx.fillRect(0,0,width,height);
+            ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=2.5;
+            ctx.strokeRect(FIELD_PAD,FIELD_PAD,width-FIELD_PAD*2,height-FIELD_PAD*2); 
+            
+            const gw = width * gameSettings.goalSize;
+            ctx.fillStyle="rgba(0,0,0,0.5)"; 
+            ctx.fillRect((width-gw)/2,0,gw,FIELD_PAD); 
+            ctx.fillRect((width-gw)/2,height-FIELD_PAD,gw,FIELD_PAD);
+
+            STRUCTURE.forEach(line=>{
+                const lineP = players.filter(p=>p.team===line.team && line.ids.includes(p.id));
+                const rw=width*(line.ids.length===1?0.15:0.60), sp=line.ids.length>1?rw/(line.ids.length-1):0;
+                lineP.forEach((p,i)=>{
+                    p.update(height*line.yP);
+                    if(gameSettings.mode==='foosball' && dragTarget!==p){ p.x = width/2+p.rowX+(line.ids.length>1?i*sp-rw/2:0); p.constrain(); }
+                    p.draw();
+                });
+            });
+
+            if(isPlaying){ 
+                ball.x+=ball.vx; ball.y+=ball.vy; 
+                handlePhysics(); 
+                drawBall();
+            }
+            updateFireworks();
+            requestAnimationFrame(loop);
+        }
+    </script>
+</body>
+</html>
+
+
