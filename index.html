@@ -22,10 +22,35 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Use dynamic viewport height to handle browser bars */
-            height: 100dvh; 
+            height: 100vh;
             width: 100vw;
         }
+
+        /* LOADING SCREEN */
+        #loading-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #FFD700;
+            transition: opacity 0.5s;
+        }
+
+        .loader {
+            border: 5px solid #333;
+            border-top: 5px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         #game-container {
             position: relative;
@@ -36,11 +61,7 @@
             overflow: hidden;
         }
 
-        canvas { 
-            display: block; 
-            width: 100%; 
-            height: 100%; 
-        }
+        canvas { display: block; width: 100%; height: 100%; }
 
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -49,7 +70,7 @@
 
         .scoreboard {
             position: fixed;
-            top: 10px; /* Biroz pastroqqa tushirildi */
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -100,10 +121,9 @@
             color: #000; 
         }
 
-        /* SQUARE BUTTONS */
         .top-btn {
             position: fixed;
-            top: 10px; /* Biroz pastroqqa tushirildi */
+            top: 10px;
             background: #222;
             border: 2px solid #555;
             border-radius: 2px;
@@ -199,6 +219,8 @@
             transform: translateX(-250px);
             transition: transform 0.3s ease;
             z-index: 200;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .settings-panel.open { transform: translateX(0); }
@@ -544,6 +566,11 @@
     </style>
 </head>
 <body>
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <p>YUKLANMOQDA...</p>
+    </div>
+
     <audio id="bgMusic" loop src="19FA19UTFDEY (1).mp3"></audio>
 
     <div id="game-container">
@@ -566,7 +593,7 @@
                 <button class="menu-btn btn-exit" onclick="exitToMenu()">Chiqish 🚪</button>
             </div>
 
-            <div id="setupScreen" class="setup-panel">
+            <div id="setupScreen" class="setup-panel hidden"> <!-- Initially hidden for loading -->
                 <div class="header"><h2>⚽ PRO FOOTBALL WORLD ⚽</h2></div>
                 
                 <div class="country-count">🌍 200+ COUNTRIES AVAILABLE</div>
@@ -734,6 +761,30 @@
                                oninput="gameSettings.goalSize = parseFloat(this.value); updateControlValue('goal', (this.value*100).toFixed(0))">
                         <div class="control-value" id="val_goal">16%</div>
                     </div>
+                    <div class="control-row">
+                        <label class="control-label">🔴 Team A Speed</label>
+                        <input type="range" class="control-slider" min="0.5" max="3" step="0.1" value="1.2" 
+                               oninput="gameSettings.teamASpeed = parseFloat(this.value); updateControlValue('teamA', this.value)">
+                        <div class="control-value" id="val_teamA">1.2x</div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">⚪ Team B Speed</label>
+                        <input type="range" class="control-slider" min="0.5" max="3" step="0.1" value="1.2" 
+                               oninput="gameSettings.teamBSpeed = parseFloat(this.value); updateControlValue('teamB', this.value)">
+                        <div class="control-value" id="val_teamB">1.2x</div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">🔴 Team A Size</label>
+                        <input type="range" class="control-slider" min="0.5" max="1.5" step="0.1" value="0.7" 
+                               oninput="gameSettings.scaleA = parseFloat(this.value); updateControlValue('scaleA', this.value)">
+                        <div class="control-value" id="val_scaleA">0.7x</div>
+                    </div>
+                    <div class="control-row">
+                        <label class="control-label">⚪ Team B Size</label>
+                        <input type="range" class="control-slider" min="0.5" max="1.5" step="0.1" value="0.7" 
+                               oninput="gameSettings.scaleB = parseFloat(this.value); updateControlValue('scaleB', this.value)">
+                        <div class="control-value" id="val_scaleB">0.7x</div>
+                    </div>
                     <button class="menu-btn btn-exit" style="width:100%; margin: 10px 0; padding: 8px;" onclick="exitToMenu()">CHIQISH</button>
                 </div>
 
@@ -760,8 +811,8 @@
         const bgMusic = document.getElementById('bgMusic');
 
         const CHEERS = ["🔥 Amazing!", "⚡ Great!", "🌟 Super!", "💥 Awesome!", "🎯 Perfect!", "⚽ Goal!", "🏆 Top!", "💪 Strong!"];
-        // INCREASED FIELD PADDING FOR VISIBILITY
-        const FIELD_PAD = 55;
+        // REVERTED FIELD PADDING TO MAKE FIELD BIGGER
+        const FIELD_PAD = 20; 
         const BALL_BASE_SPEED = 6.5;
         const PLAYER_BASE_SPEED = 2.5;
 
@@ -775,7 +826,6 @@
 
         const ROLE_NAMES = ["GK", "DEF", "DEF", "MID", "MID", "MID", "MID", "FWD", "FWD"];
 
-        // HUGE LIST OF COUNTRIES (200+)
         const ALL_COUNTRIES = {
             "uz": "Uzbekistan", "es": "Spain", "br": "Brazil", "ar": "Argentina", "de": "Germany", "fr": "France",
             "pt": "Portugal", "gb-eng": "England", "it": "Italy", "nl": "Netherlands", "be": "Belgium", "hr": "Croatia",
@@ -903,7 +953,6 @@
             }
         }
 
-        // TRIGGER FULLSCREEN ON FIRST INTERACTION
         function initFullscreenListener() {
             const fsHandler = () => {
                 toggleFullscreen();
@@ -1057,6 +1106,41 @@
         B_URLS.forEach((u,i)=>{let img=new Image(); img.src=u; SPRITES.barca[i]=img;});
         R_URLS.forEach((u,i)=>{let img=new Image(); img.src=u; SPRITES.real[i]=img;});
 
+        // PRELOAD ASSETS
+        let assetsLoaded = 0;
+        const totalAssets = 2 + B_URLS.length + R_URLS.length; // 2 flags + players
+
+        function checkAssetsLoaded() {
+            assetsLoaded++;
+            if(assetsLoaded >= totalAssets) {
+                // Hide loading screen
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').classList.add('hidden');
+                        document.getElementById('setupScreen').classList.remove('hidden');
+                    }, 500);
+                }, 1000);
+            }
+        }
+
+        // Hook into existing image loads
+        teamInfo.barca.img.onload = checkAssetsLoaded;
+        teamInfo.real.img.onload = checkAssetsLoaded;
+        SPRITES.barca.forEach(img => img.onload = checkAssetsLoaded);
+        SPRITES.real.forEach(img => img.onload = checkAssetsLoaded);
+
+        // Fallback in case of load error or cache
+        setTimeout(() => {
+            if(document.getElementById('loading-screen').style.opacity !== '0') {
+                 document.getElementById('loading-screen').style.opacity = '0';
+                 setTimeout(() => {
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    document.getElementById('setupScreen').classList.remove('hidden');
+                 }, 500);
+            }
+        }, 3000); // 3 sec max wait
+
         class Player {
             constructor(id, team, x, y) {
                 this.id = id; this.team = team; this.x = x; this.y = y;
@@ -1103,10 +1187,9 @@
             draw() {
                 if(this.hidden) return;
                 
-                // DRAW CIRCULAR FLAGS IF FLAG MODE IS ON
                 if (gameSettings.visual === 'flag') {
                     const s = this.team === 'barca' ? gameSettings.scaleA : gameSettings.scaleB;
-                    const radius = 23 * s; // Approx half width
+                    const radius = 23 * s; 
                     
                     ctx.save();
                     ctx.beginPath();
@@ -1116,15 +1199,13 @@
                     
                     let flagImg = teamInfo[this.team].img;
                     if (flagImg && flagImg.complete) {
-                        // Draw flag centered
-                        const size = radius * 2.8; // Make flag slightly larger to cover circle
+                        const size = radius * 2.8; 
                         ctx.drawImage(flagImg, this.x - size/2, this.y - size/2, size, size);
                     } else {
                         ctx.fillStyle = this.team === 'real' ? '#fff' : '#1a2744';
                         ctx.fill();
                     }
                     
-                    // Border
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
                     ctx.strokeStyle = "#fff";
@@ -1133,7 +1214,6 @@
                     
                     ctx.restore();
                 } else {
-                    // Original Square Images
                     const s = this.team === 'barca' ? gameSettings.scaleA : gameSettings.scaleB;
                     const w=46*s, h=69*s;
                     ctx.fillStyle=this.team==='real'?'#fff':'#1a2744'; 
