@@ -22,7 +22,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            /* Use dynamic viewport height to handle browser bars */
+            height: 100dvh; 
+            width: 100vw;
         }
 
         #game-container {
@@ -31,9 +33,14 @@
             height: 100%;
             background: linear-gradient(180deg, #1a5c35 0%, #0d3d20 100%);
             touch-action: none;
+            overflow: hidden;
         }
 
-        canvas { display: block; width: 100%; height: 100%; }
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+        }
 
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -42,13 +49,13 @@
 
         .scoreboard {
             position: fixed;
-            top: 8px;
+            top: 10px; /* Biroz pastroqqa tushirildi */
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             align-items: center;
             background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.95));
-            border-radius: 0px; /* To'rtburchak */
+            border-radius: 0px;
             overflow: hidden; 
             border: 2px solid #FFD700;
             pointer-events: auto; 
@@ -93,13 +100,13 @@
             color: #000; 
         }
 
-        /* YANGI TO'RTBURCHAK TUGMALAR STILI */
+        /* SQUARE BUTTONS */
         .top-btn {
             position: fixed;
-            top: 8px;
+            top: 10px; /* Biroz pastroqqa tushirildi */
             background: #222;
             border: 2px solid #555;
-            border-radius: 2px; /* Deyarli o'tkir burchak */
+            border-radius: 2px;
             padding: 6px 10px;
             cursor: pointer;
             pointer-events: auto;
@@ -120,13 +127,12 @@
         .top-btn:active { transform: translateY(1px); }
         .top-btn:hover { border-color: #FFD700; background: #333; }
 
-        .settings-btn { left: 8px; }
-        .pause-btn { right: 8px; background: #d35400; border-color: #e67e22; }
+        .settings-btn { left: 10px; }
+        .pause-btn { right: 10px; background: #d35400; border-color: #e67e22; }
         .edit-btn { right: 75px; background: #2980b9; border-color: #3498db; }
         .sound-btn { right: 135px; }
         .fullscreen-btn { right: 180px; }
 
-        /* PAUSE MENU OVERLAY */
         .pause-menu {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -161,7 +167,7 @@
             border: 2px solid #555;
             padding: 15px 0;
             margin: 10px;
-            border-radius: 2px; /* To'rtburchak */
+            border-radius: 2px;
             font-size: 14px;
             font-weight: 900;
             width: 220px;
@@ -181,8 +187,8 @@
 
         .settings-panel {
             position: fixed;
-            top: 45px;
-            left: 8px;
+            top: 50px;
+            left: 10px;
             background: #111;
             border-radius: 4px;
             padding: 10px;
@@ -230,7 +236,7 @@
             -webkit-appearance: none;
             width: 12px;
             height: 12px;
-            border-radius: 0; /* Kvadrat */
+            border-radius: 0;
             background: #FFD700;
             cursor: pointer;
             border: 1px solid #000;
@@ -510,7 +516,7 @@
             color: #000;
             width: 24px;
             height: 24px;
-            border-radius: 0; /* Kvadrat */
+            border-radius: 0;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -754,7 +760,8 @@
         const bgMusic = document.getElementById('bgMusic');
 
         const CHEERS = ["🔥 Amazing!", "⚡ Great!", "🌟 Super!", "💥 Awesome!", "🎯 Perfect!", "⚽ Goal!", "🏆 Top!", "💪 Strong!"];
-        const FIELD_PAD = 20;
+        // INCREASED FIELD PADDING FOR VISIBILITY
+        const FIELD_PAD = 55;
         const BALL_BASE_SPEED = 6.5;
         const PLAYER_BASE_SPEED = 2.5;
 
@@ -1425,5 +1432,6 @@
     </script>
 </body>
 </html>
+
 
 
