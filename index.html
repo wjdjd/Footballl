@@ -155,14 +155,14 @@
     <div class="spacer"></div>
     <div class="score-block">
         <div class="s-team">
-            <img class="s-flag" id="sflag_a" src="https://flagcdn.com/w80/uz.png" alt="" onclick="showFlagPopup('a')">
+            <img class="s-flag" id="sflag_a" src="https://flagcdn.com/w80/uz.png" alt="" onclick="showFlagPopup('a')" style="display:none;">
             <span class="s-name" id="snm_a">O'ZBEK</span>
         </div>
         <div class="s-num s-red" id="sc_a">0</div>
         <div class="s-num s-wht" id="sc_b">0</div>
         <div class="s-team">
             <span class="s-name" id="snm_b">ISPANIYA</span>
-            <img class="s-flag" id="sflag_b" src="https://flagcdn.com/w80/es.png" alt="" onclick="showFlagPopup('b')">
+            <img class="s-flag" id="sflag_b" src="https://flagcdn.com/w80/es.png" alt="" onclick="showFlagPopup('b')" style="display:none;">
         </div>
     </div>
     <div class="spacer"></div>
@@ -206,6 +206,10 @@
         <div class="sp-row">
             <div style="display:flex;justify-content:space-between;"><span class="sp-lbl">🏃 O'yinchi tezligi</span><span class="sp-val" id="v_ps">1.0x</span></div>
             <input class="sp-sl" type="range" min="0.5" max="2" step="0.1" value="1.0" oninput="GS.playerSpeed=+this.value;setV('ps',this.value+'x')">
+        </div>
+        <div class="sp-sep"></div>
+        <div class="sp-full">
+            <button onclick="exitToMenu()" style="width:100%;background:linear-gradient(135deg,#b03a2e,#7b241c);color:#fff;border:1.5px solid rgba(176,58,46,0.4);height:34px;border-radius:7px;font-size:10px;font-weight:900;cursor:pointer;letter-spacing:0.5px;">🚪 O'YINDAN CHIQISH</button>
         </div>
     </div>
 </div>
@@ -735,7 +739,14 @@
     function toggleSettings(){setOpen=!setOpen;document.getElementById('settPanel').classList.toggle('open',setOpen);}
     function closeSettings(){setOpen=false;document.getElementById('settPanel').classList.remove('open');}
     function setMode(m){GS.mode=m;[['mo_f','foosball'],['mo_e','free'],['su_f','foosball'],['su_e','free']].forEach(([id,val])=>{const e=document.getElementById(id);if(e)e.className='mopt'+(val===m?' on':'');});}
-    function setVisual(v){GS.visual=v;[['mo_i','img'],['mo_fl','flag'],['su_i','img'],['su_fl','flag']].forEach(([id,val])=>{const e=document.getElementById(id);if(e)e.className='mopt'+(val===v?' on':'');});}
+    function setVisual(v){
+        GS.visual=v;
+        [['mo_i','img'],['mo_fl','flag'],['su_i','img'],['su_fl','flag']].forEach(([id,val])=>{const e=document.getElementById(id);if(e)e.className='mopt'+(val===v?' on':'');});
+        // Bayroq rejimida tepada bayroqlar ko'rinsin, rasm rejimida yashirilsin
+        const showFlag = v==='flag';
+        document.getElementById('sflag_a').style.display = showFlag ? '' : 'none';
+        document.getElementById('sflag_b').style.display = showFlag ? '' : 'none';
+    }
     function togglePause(){isPaused=!isPaused;document.getElementById('pauseMenu').classList.toggle('hidden',!isPaused);bgM.volume=isPaused?0.2:0.8;}
     function restartMatch(){sc={a:0,b:0};document.getElementById('sc_a').innerText=0;document.getElementById('sc_b').innerText=0;resetBall();if(isPaused)togglePause();}
     function exitToMenu(){location.reload();}
