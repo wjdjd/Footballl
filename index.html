@@ -140,13 +140,20 @@
         .fp-close-hint{color:#666;font-size:10px;margin-top:4px;}
 
         /* Card overlay */
-        #cardOvl{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:750;display:none;flex-direction:column;align-items:center;gap:4px;pointer-events:none;}
+        #cardOvl{position:fixed;z-index:750;display:none;flex-direction:column;align-items:center;gap:4px;pointer-events:none;transition:left 0.4s ease,top 0.4s ease;}
         #cardOvl.show{display:flex;}
-        .card-rect{width:38px;height:52px;border-radius:5px;box-shadow:0 4px 18px rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);animation:cardDrop 0.3s ease;}
-        @keyframes cardDrop{from{transform:translateY(-30px);opacity:0}to{transform:translateY(0);opacity:1}}
-        .card-rect.yellow{background:linear-gradient(135deg,#f1c40f,#f39c12);}
-        .card-rect.red{background:linear-gradient(135deg,#e74c3c,#c0392b);}
-        #cardTxt{color:#fff;font-size:11px;font-weight:900;text-shadow:0 1px 4px #000;letter-spacing:1px;}
+        .card-rect{width:38px;height:52px;border-radius:5px;box-shadow:0 4px 18px rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);}
+        @keyframes cardDrop{from{transform:translateY(-30px) rotate(-15deg);opacity:0}to{transform:translateY(0) rotate(0deg);opacity:1}}
+        @keyframes cardFloat{
+            0%{transform:translateY(0) rotate(-3deg);}
+            25%{transform:translateY(-8px) rotate(3deg);}
+            50%{transform:translateY(-4px) rotate(-2deg);}
+            75%{transform:translateY(-10px) rotate(4deg);}
+            100%{transform:translateY(0) rotate(-3deg);}
+        }
+        .card-rect.yellow{background:linear-gradient(135deg,#f1c40f,#f39c12);animation:cardDrop 0.3s ease,cardFloat 1.2s ease-in-out 0.3s infinite;}
+        .card-rect.red{background:linear-gradient(135deg,#e74c3c,#c0392b);animation:cardDrop 0.3s ease,cardFloat 1.0s ease-in-out 0.3s infinite;}
+        #cardTxt{color:#fff;font-size:11px;font-weight:900;text-shadow:0 1px 4px #000;letter-spacing:1px;white-space:nowrap;}
 
         /* Match end overlay */
         #endOvl{position:fixed;inset:0;z-index:850;display:none;justify-content:center;align-items:center;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);}
@@ -172,9 +179,7 @@
     <p style="font-size:9px;color:#555;margin-top:5px;">🌍 Bayroqlar tayyorlanmoqda</p>
 </div>
 
-<!-- AUDIO -->
-<audio id="bgMusic" loop preload="auto" src="19FA19UTFDEY (1).mp3"></audio>
-<!-- Web Audio API orqali top ovozi va gol ovozi yaratiladi (JS da) -->
+<!-- Barcha ovozlar Web Audio API orqali (mp3 yo'q) -->
 
 <div id="topbar" class="hidden">
     <button class="tb tb-set" onclick="toggleSettings()">⚙️</button>
@@ -220,24 +225,15 @@
             </div>
         </div>
         <div class="sp-sep"></div>
-
-        <!-- Musiqa -->
-        <div class="sp-sec-title">🎵 MUSIQA</div>
-        <div class="sp-row">
-            <div style="display:flex;justify-content:space-between;"><span class="sp-lbl">🎵 Musiqa ovozi</span><span class="sp-val" id="v_mv">80%</span></div>
-            <input class="sp-sl" type="range" min="0" max="1" step="0.05" value="0.8" oninput="bgMusic.volume=+this.value;setV('mv',Math.round(this.value*100)+'%')">
-        </div>
-        <div class="sp-row">
-            <div style="display:flex;justify-content:space-between;"><span class="sp-lbl">🔊 Musiqa on/off</span></div>
-            <button onclick="toggleSound()" style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:#FFD700;padding:4px 12px;border-radius:5px;font-size:9px;font-weight:900;cursor:pointer;">ALMASH</button>
-        </div>
-
-        <div class="sp-sep"></div>
         <!-- Ovozlar -->
         <div class="sp-sec-title">🔔 OVOZLAR</div>
         <div class="sp-row">
             <div style="display:flex;justify-content:space-between;"><span class="sp-lbl">⚽ Top ovozi</span><span class="sp-val" id="v_bsnd">60%</span></div>
             <input class="sp-sl" type="range" min="0" max="1" step="0.05" value="0.6" id="ballSndSlider" oninput="GS.ballSndVol=+this.value;setV('bsnd',Math.round(this.value*100)+'%')">
+        </div>
+        <div class="sp-row">
+            <div style="display:flex;justify-content:space-between;"><span class="sp-lbl">🎵 Top toni (past/baland)</span><span class="sp-val" id="v_bpitch">50%</span></div>
+            <input class="sp-sl" type="range" min="0.2" max="2.0" step="0.05" value="1.0" id="ballPitchSlider" oninput="GS.ballPitch=+this.value;setV('bpitch',Math.round((this.value-0.2)/1.8*100)+'%')">
         </div>
         <div class="sp-row">
             <div style="display:flex;justify-content:space-between;"><span class="sp-lbl">🎉 Gol ovozi</span><span class="sp-val" id="v_gsnd">80%</span></div>
@@ -554,23 +550,27 @@ function getAudioCtx(){
     return audioCtx;
 }
 
-// Top tepilganda - past, qisqa "thump" ovozi
+// Top tepilganda - past, qisqa "thump" ovozi + pitch nazorat
 function playBallHit(vol=0.6){
     if(vol<=0)return;
     try{
         const ac=getAudioCtx();
+        const pitch=GS.ballPitch||1.0;
+        const baseFreq=80*pitch;
         const buf=ac.createBuffer(1,ac.sampleRate*0.12,ac.sampleRate);
         const d=buf.getChannelData(0);
         for(let i=0;i<d.length;i++){
             const t=i/ac.sampleRate;
-            // Low thud - leather football hit
-            d[i]=(Math.sin(2*Math.PI*80*t)*Math.exp(-t*35)+
-                   Math.sin(2*Math.PI*120*t)*0.4*Math.exp(-t*50)+
+            d[i]=(Math.sin(2*Math.PI*baseFreq*t)*Math.exp(-t*35)+
+                   Math.sin(2*Math.PI*(baseFreq*1.5)*t)*0.4*Math.exp(-t*50)+
                    (Math.random()-0.5)*0.15*Math.exp(-t*40))*Math.exp(-t*18);
         }
         const src=ac.createBufferSource();src.buffer=buf;
         const gain=ac.createGain();gain.gain.value=vol*1.4;
-        const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=300;
+        const filt=ac.createBiquadFilter();
+        filt.type='lowpass';
+        // Pitch baland bo'lsa filter ham yuqori
+        filt.frequency.value=Math.min(300*pitch*1.5, 2000);
         src.connect(filt);filt.connect(gain);gain.connect(ac.destination);
         src.start();
     }catch(e){}
@@ -637,7 +637,6 @@ const gCanvas=document.getElementById('gCanvas');
 const ctx=gCanvas.getContext('2d',{alpha:false});
 const fwC=document.getElementById('fwCanvas');
 const fwX=fwC.getContext('2d');
-const bgM=document.getElementById('bgMusic');
 
 const FP=12,BS=4.0,PS=1.5;
 const CHEERS=["🔥 Ajoyib!","⚡ Zo'r!","🌟 Super!","💥 Hayratomuz!","🎯 Mukammal!","🏆 Chiroyli!"];
@@ -656,7 +655,7 @@ const GS={
     mode:'foosball',visual:'img',
     ballSpeed:0.5,playerScale:0.7,teamASpeed:0.9,teamBSpeed:0.9,
     goalSize:0.16,playerSpeed:1.0,
-    ballSndVol:0.6,goalSndVol:0.8,
+    ballSndVol:0.6,goalSndVol:0.8,ballPitch:1.0,
     matchMins:90
 };
 const ES={A:Array(9).fill(true),B:Array(9).fill(true)};
@@ -731,7 +730,7 @@ function endMatch(){
 }
 
 // ===== CARD SYSTEM =====
-let cardTimer=null;
+let cardTimer=null, cardMoveInterval=null;
 function showCard(type,team){
     playCardSound();
     const cardEl=document.getElementById('cardOvl');
@@ -740,9 +739,30 @@ function showCard(type,team){
     rect.className='card-rect '+type;
     const tname=TI[team].name;
     txt.textContent=(type==='yellow'?'🟨 SARIQ':'🟥 QIZIL')+' — '+tname;
+
+    // Random boshlang'ich pozitsiya
+    function rndPos(){
+        const margin=80;
+        const x=margin+Math.random()*(window.innerWidth-margin*2);
+        const y=70+Math.random()*(window.innerHeight*0.6);
+        cardEl.style.left=x+'px';
+        cardEl.style.top=y+'px';
+    }
+    rndPos();
     cardEl.classList.add('show');
+
+    // Har 600ms da yangi random joyga siljiydi
+    clearInterval(cardMoveInterval);
+    cardMoveInterval=setInterval(()=>{
+        if(!cardEl.classList.contains('show')){clearInterval(cardMoveInterval);return;}
+        rndPos();
+    },600);
+
     clearTimeout(cardTimer);
-    cardTimer=setTimeout(()=>cardEl.classList.remove('show'),2500);
+    cardTimer=setTimeout(()=>{
+        cardEl.classList.remove('show');
+        clearInterval(cardMoveInterval);
+    },3000);
     if(setOpen)toggleSettings();
 }
 
@@ -983,7 +1003,6 @@ function setVisual(v){
 function togglePause(){
     isPaused=!isPaused;
     document.getElementById('pauseMenu').classList.toggle('hidden',!isPaused);
-    bgM.volume=isPaused?0.2:0.8;
     if(!isPaused)playWhistle();
 }
 function restartMatch(){
@@ -991,12 +1010,18 @@ function restartMatch(){
     document.getElementById('sc_a').innerText=0;document.getElementById('sc_b').innerText=0;
     document.getElementById('endOvl').classList.remove('show');
     resetBall();
-    if(isPaused){isPaused=false;document.getElementById('pauseMenu').classList.add('hidden');bgM.volume=0.8;}
+    if(isPaused){isPaused=false;document.getElementById('pauseMenu').classList.add('hidden');}
     startTimer();
     playWhistle();
 }
 function exitToMenu(){location.reload();}
-function toggleSound(){if(bgM.paused){bgM.play();document.getElementById('sndBtn').innerText='🔊';}else{bgM.pause();document.getElementById('sndBtn').innerText='🔇';}}
+let soundMuted=false;
+function toggleSound(){
+    soundMuted=!soundMuted;
+    document.getElementById('sndBtn').innerText=soundMuted?'🔇':'🔊';
+    // Web Audio context suspend/resume
+    if(audioCtx){soundMuted?audioCtx.suspend():audioCtx.resume();}
+}
 function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen&&document.exitFullscreen();}
 
 // Flag popup
@@ -1022,7 +1047,6 @@ function startGame(){
     TI.b.name=document.getElementById('tn_b').value.trim().toUpperCase().substring(0,9)||"ISPANIYA";
     document.getElementById('snm_a').textContent=TI.a.name.substring(0,7);
     document.getElementById('snm_b').textContent=TI.b.name.substring(0,7);
-    bgM.play().catch(()=>{});bgM.volume=0.8;
     sc={a:0,b:0};document.getElementById('sc_a').innerText=0;document.getElementById('sc_b').innerText=0;
     players=[];
     STR.forEach((ln,idx)=>{
@@ -1040,7 +1064,6 @@ function startGame(){
     playWhistle();
     loop();
 }
-
 function showEditPos(){document.getElementById('setupScr').classList.add('hidden');document.getElementById('editScr').classList.remove('hidden');renderEL();}
 function showEditScreen(){if(setOpen){setOpen=false;document.getElementById('settPanel').classList.remove('open');}isPaused=true;document.getElementById('editScr').classList.remove('hidden');renderEL();}
 function renderEL(){
@@ -1053,8 +1076,8 @@ function renderEL(){
 }
 function tgPE(t,i){if(t==='A')ES.A[i]=!ES.A[i];else ES.B[i]=!ES.B[i];renderEL();}
 function mvPE(t,pos,d){const np=pos+d;if(np<0||np>=9)return;const st=t==='A'?ES.A:ES.B,sp=t==='A'?SP.a:SP.b;[st[pos],st[np]]=[st[np],st[pos]];[sp[pos],sp[np]]=[sp[np],sp[pos]];renderEL();}
-function applyEdit(){players.forEach(p=>{p.hidden=!(p.team==='a'?ES.A[p.id]:ES.B[p.id]);});document.getElementById('editScr').classList.add('hidden');if(isPlaying){isPaused=false;bgM.volume=0.8;}else{document.getElementById('setupScr').classList.remove('hidden');}}
-function backToSetup(){document.getElementById('editScr').classList.add('hidden');document.getElementById('newTeamScr').classList.add('hidden');if(isPlaying){isPaused=false;bgM.volume=0.8;}else{document.getElementById('setupScr').classList.remove('hidden');}}
+function applyEdit(){players.forEach(p=>{p.hidden=!(p.team==='a'?ES.A[p.id]:ES.B[p.id]);});document.getElementById('editScr').classList.add('hidden');if(isPlaying){isPaused=false;}else{document.getElementById('setupScr').classList.remove('hidden');}}
+function backToSetup(){document.getElementById('editScr').classList.add('hidden');document.getElementById('newTeamScr').classList.add('hidden');if(isPlaying){isPaused=false;}else{document.getElementById('setupScr').classList.remove('hidden');}}
 
 const upls={A:{flag:null,players:[]},B:{flag:null,players:[]}};
 function showNewTeam(){document.getElementById('setupScr').classList.add('hidden');document.getElementById('newTeamScr').classList.remove('hidden');}
@@ -1062,7 +1085,7 @@ function handleUpl(t,type,inp){const files=inp.files;if(!files.length)return;if(
 function saveNewTeam(){const nA=document.getElementById('nt_a').value.trim().toUpperCase(),nB=document.getElementById('nt_b').value.trim().toUpperCase();if(nA)TI.a.name=nA;if(nB)TI.b.name=nB;if(upls.A.flag){TI.a.img.src=upls.A.flag;TI.a.flagUrl=upls.A.flag;}if(upls.B.flag){TI.b.img.src=upls.B.flag;TI.b.flagUrl=upls.B.flag;}if(upls.A.players.length)upls.A.players.forEach((s,i)=>{let m=new Image();m.src=s;SP.a[i]=m;});if(upls.B.players.length)upls.B.players.forEach((s,i)=>{let m=new Image();m.src=s;SP.b[i]=m;});backToSetup();}
 
 document.addEventListener('touchmove',e=>{if(e.target.closest('.flag-grid')||e.target.closest('.panel-box')||e.target.closest('.pl-list')||e.target.closest('#settPanel'))return;e.preventDefault();},{passive:false});
-document.body.addEventListener('touchstart',()=>{if(bgM.paused)bgM.play().catch(()=>{});getAudioCtx();},{once:true});
+document.body.addEventListener('touchstart',()=>{getAudioCtx();},{once:true});
 document.addEventListener('click',e=>{if(setOpen&&!e.target.closest('#settPanel')&&!e.target.closest('.tb-set')){setOpen=false;document.getElementById('settPanel').classList.remove('open');}});
 </script>
 </body>
